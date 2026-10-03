@@ -239,10 +239,12 @@ export function ReticleDev() {
         // withReticle() finds the daemon serving this project on every dev-server start. It wins over
         // any port written into this file at install time, so moving the daemon needs no edit here.
         const url = process.env.NEXT_PUBLIC_RETICLE_URL;
+        const sdkVersion = process.env.NEXT_PUBLIC_RETICLE_SDK_VERSION;
         reticle.connect({
           ${fields}...(url ? { url } : {}),
           ...(token ? { token } : {}),
           ...(root ? { root } : {}),
+          ...(sdkVersion ? { sdkVersion } : {}),
         });
 
         // ── Start with ONE flow. ────────────────────────────────────────────────────────────────
