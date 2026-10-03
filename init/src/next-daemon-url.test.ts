@@ -76,8 +76,25 @@ describe('re-running init on an existing Next install', () => {
   });
 
   it('leaves an already-current component alone', () => {
-    const step = devStep('const url = process.env.NEXT_PUBLIC_RETICLE_URL;');
+    const step = devStep(
+      'const url = process.env.NEXT_PUBLIC_RETICLE_URL; const sdkVersion = process.env.NEXT_PUBLIC_RETICLE_SDK_VERSION;',
+    );
     expect(step?.status).toBe(StepStatus.ALREADY);
+  });
+
+  it('reports NOTICE for a component missing the SDK version read', () => {
+    const step = devStep(
+      'const url = process.env.NEXT_PUBLIC_RETICLE_URL; reticle.connect({ ...(url ? { url } : {}) });',
+    );
+    expect(step?.status).toBe(StepStatus.NOTICE);
+    expect(step?.detail).toContain('NEXT_PUBLIC_RETICLE_SDK_VERSION');
+  });
+
+  it('reports both missing reads when both are absent', () => {
+    const step = devStep("reticle.connect({ projectId: 'x' });");
+    expect(step?.status).toBe(StepStatus.MANUAL);
+    expect(step?.detail).toContain('NEXT_PUBLIC_RETICLE_URL');
+    expect(step?.detail).toContain('NEXT_PUBLIC_RETICLE_SDK_VERSION');
   });
 
   /** Absent means NOT READ. Inventing work from missing information is how a plan grows dead steps. */
