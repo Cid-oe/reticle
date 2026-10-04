@@ -64,7 +64,7 @@ describe('visual tools — temp dir, never touches the repo', () => {
     await removeTempDir(join(root, '..'));
   });
 
-  function deps(provider?: RealInputProvider, sessionRuntime?: string): ToolDeps {
+  function deps(provider?: RealInputProvider, sessionRuntime?: string, pool?: any): ToolDeps {
     const session = fakeSession(sessionRuntime);
     const sessions: Partial<SessionManager> = { resolve: () => session };
     const base: ToolDeps = {
@@ -77,6 +77,7 @@ describe('visual tools — temp dir, never touches the repo', () => {
       fs,
       reticleRoot: root,
       now,
+      pool,
     };
     return provider === undefined ? base : { ...base, realInput: provider };
   }
@@ -154,6 +155,20 @@ describe('visual tools — temp dir, never touches the repo', () => {
    *
    * Keying on the session's runtime looked equivalent and is exactly this bug.
    */
+  it('routes to screenshotLease with clip if no provider and pool is available', async () => {
+    const png = solidPng([255, 255, 255]);
+    const screenshotLease = vi.fn(() => Promise.resolve(png));
+    const pool = { screenshotLease };
+    const r = (await tool(ReticleTool.SCREENSHOT).handler(deps(undefined, undefined, pool), {
+      name: 'home',
+      clip: { x: 10, y: 20, width: 30, height: 40 },
+    })) as { saved: boolean; name: string };
+    expect(r.saved).toBe(true);
+    expect(screenshotLease).toHaveBeenCalledWith(undefined, {
+      clip: { x: 10, y: 20, width: 30, height: 40 },
+    });
+  });
+
   describe('a visual baseline is keyed by what rendered it', () => {
     it('files a driven-browser capture as web, even for a desktop session', async () => {
       const result = (await tool(ReticleTool.SCREENSHOT).handler(

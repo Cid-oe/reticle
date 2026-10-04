@@ -58,6 +58,16 @@ describe('capturing a lease', () => {
     await pool.shutdown();
   });
 
+  it('passes clip through rather than silently ignoring it', async () => {
+    const screenshot = vi.fn(() => Promise.resolve(PNG));
+    const pool = poolWith({ screenshot });
+    const lease = await pool.acquire('http://app.test/');
+    const clip = { x: 10, y: 20, width: 30, height: 40 };
+    await pool.screenshotLease(lease.sessionId, { clip });
+    expect(screenshot).toHaveBeenCalledWith({ clip });
+    await pool.shutdown();
+  });
+
   it('answers undefined for a session that is not a lease', async () => {
     const pool = poolWith();
     expect(await pool.screenshotLease('s-somebody-elses-tab')).toBeUndefined();

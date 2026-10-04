@@ -52,6 +52,16 @@ npm i @reticlehq/core
 
 `EventType`, `ActionType`, `ElementState`, `QueryBy`, `MessageKind`, `ReticleCommand`, `PhenomenonType`, `SettleReason`, `ComponentStateReason`, `InputMode`, `InputModeReason`, `ActionWarning`, `DriveErrorCode`, `TruncationChannel`, `EventAttribution`, `PerfMetric`, `PresenterMode`, `SnapshotMode`, `VisualReason`, `CONSOLE_LEVELS`, `Verified`.
 
+#### VisualReason
+
+| Constant                | Value                   |
+| ----------------------- | ----------------------- |
+| `NO_PROVIDER`           | `no-provider`           |
+| `CAPTURE_FAILED`        | `capture-failed`        |
+| `FULL_PAGE_UNSUPPORTED` | `full-page-unsupported` |
+| `NOT_COMPOSITED`        | `window-not-composited` |
+| `UNSCOPED_CLIP`         | `unscoped-clip`         |
+
 `ComponentStateResult` is an interface, not one of these: it is a type-only export, so importing it as a value fails with `'ComponentStateResult' only refers to a type, but is being used as a value here`.
 
 ### Zod schemas

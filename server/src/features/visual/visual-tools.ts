@@ -86,9 +86,11 @@ async function buildOpts(
   const ref = asString(args['ref']);
   if (ref !== undefined) {
     const session = deps.sessions.resolve(sessionId);
-    const res = await session.command(ReticleCommand.INSPECT, { ref });
-    const box = res.ok ? asBox(res.result) : undefined;
-    if (box !== undefined) return { clip: box };
+    if (typeof session.command === 'function') {
+      const res = await session.command(ReticleCommand.INSPECT, { ref });
+      const box = res.ok ? asBox(res.result) : undefined;
+      if (box !== undefined) return { clip: box };
+    }
   }
   return true === args['fullPage'] ? { fullPage: true } : {};
 }
@@ -105,10 +107,14 @@ async function desktopCapture(
   deps: ToolDeps,
   sessionId: string | undefined,
   fullPage: boolean,
+  args?: Record<string, unknown>,
 ): Promise<{ png?: Uint8Array; reason?: VisualReason }> {
   const session = deps.sessions.resolve(sessionId);
   // A session that cannot take commands (no live browser behind it) simply has no pixels to give.
   if (typeof session.command !== 'function') return {};
+  if (args && (args['clip'] !== undefined || args['ref'] !== undefined)) {
+    return { reason: VisualReason.UNSCOPED_CLIP };
+  }
   const res = await session.command(ReticleCommand.CAPTURE, { fullPage });
   if (!res.ok) return {};
   const r = asRecord(res.result);
@@ -203,9 +209,10 @@ async function capture(
   args: Record<string, unknown>,
 ): Promise<{ png?: Uint8Array; reason?: string; runtime?: string | undefined }> {
   const provider = screenshotProvider(deps);
+  const opts = await buildOpts(deps, sessionId, args);
   if (provider !== undefined) {
     const session = deps.sessions.resolve(sessionId);
-    const png = await provider.screenshot(session.url, await buildOpts(deps, sessionId, args));
+    const png = await provider.screenshot(session.url, opts);
     // A driven browser renders the session's URL in a BROWSER — so the pixels are web even when the
     // session named is a desktop window. Scoping those under the desktop runtime would corrupt that
     // runtime's baseline with a picture of a different renderer.
@@ -213,7 +220,7 @@ async function capture(
   }
   // The window's own backing store, via the Electron/Tauri adapter — the only route whose pixels
   // really are the desktop app.
-  const desktop = await desktopCapture(deps, sessionId, true === args['fullPage']);
+  const desktop = await desktopCapture(deps, sessionId, true === args['fullPage'], args);
   if (desktop.png !== undefined) return { png: desktop.png, runtime: runtimeOf(deps, sessionId) };
   if (desktop.reason !== undefined) return { reason: desktop.reason };
 
@@ -225,9 +232,7 @@ async function capture(
    * the page the caller means, and a lease is the fallback rather than a competitor.
    */
   const leased =
-    sessionId === undefined
-      ? undefined
-      : await deps.pool?.screenshotLease(sessionId, { fullPage: true === args['fullPage'] });
+    sessionId === undefined ? undefined : await deps.pool?.screenshotLease(sessionId, opts);
   // A leased page is a real browser page, whatever the session is.
   if (leased !== undefined) return { png: leased, runtime: AppRuntime.WEB };
   return {
